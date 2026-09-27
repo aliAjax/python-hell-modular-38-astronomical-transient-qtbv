@@ -23,6 +23,8 @@ python3 app.py --db ./data.db --port 8338
 
 `source`为巡天来源，`candidate`为瞬变候选，`telescope`为望远镜，`observation`为后续观测申请。
 
+撤回候选会级联撤销其尚未完成（`requested`/`scheduled`）的观测，撤销审计记录携带撤回原因与操作者，望远镜和观测队时间窗随之释放；重分类候选则保留已排观测并标记`review_pending`，响应中的`flagged_observations`列出这些观测，审计记录包含原类型与新类型。两个操作均为原子更新：版本过期时候选与观测都不变。
+
 ## 接口
 
 - `GET /health`
