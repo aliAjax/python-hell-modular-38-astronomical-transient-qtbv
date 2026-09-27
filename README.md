@@ -34,6 +34,13 @@ python3 app.py --db ./data.db --port 8338
 
 身份通过`X-User-Id`和`X-Role`请求头传入。可选`Idempotency-Key`防止重复创建。
 
+## 撤回与重分类的级联
+
+- 候选执行`withdraw`时，其所有未完成观测（`requested`、`scheduled`）在同一事务中一并撤销为`withdrawn`，观测记录写入撤回原因（`reason`）和操作者（`withdrawn_by`），每条撤销都有独立审计（`detail.cascade = candidate_withdraw`）。已完成（`completed`）观测不动。撤销后望远镜与观测队的时间窗立即释放，后续申请可以占用同一窗口（冲突检查只统计`scheduled`观测）。
+- 候选执行`reclassify`时，已排程（`scheduled`）观测继续保留，但标记`data.review_status = "pending"`等待复核；`requested`/`completed`观测不变。候选审计的patch含`previous_type`与新`transient_type`，被标记观测另有`flag_review`审计，同样记录原类型和新类型。
+- 两类操作的响应都在实体之外附加`affected_observations`列表，列出本次受影响的观测。
+- 上述所有更新（候选、观测、审计）在单个数据库事务内提交；当`expected_version`过期时返回409冲突，任何实体和审计都不会更新。
+
 ## 测试
 
 ```bash

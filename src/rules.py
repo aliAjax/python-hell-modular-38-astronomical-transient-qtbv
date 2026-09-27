@@ -122,6 +122,12 @@ def _validate_correct(actor, entity, data, lookup):
     return {"corrected_by": actor.user_id}
 
 
+def _validate_withdraw(actor, entity, data, lookup):
+    if not str(data.get("reason", "")).strip():
+        raise ValidationError("withdrawal reason is required")
+    return {"withdrawn_by": actor.user_id}
+
+
 def _validate_schedule(actor, entity, data, lookup):
     observations = lookup("observation", "telescope_id", entity["data"].get("telescope_id")) if lookup else []
     for other in observations:
@@ -236,6 +242,7 @@ class RuleEngine:
         ("candidate", "correct"): _validate_correct,
         ("observation", "schedule"): _validate_schedule,
         ("observation", "correct"): _validate_correct,
+        ("observation", "withdraw"): _validate_withdraw,
     }
 
     def normalize_kind(self, kind):
